@@ -1,82 +1,45 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const ROUNDS = process.env.SALT_ROUNDS;
+require("dotenv").config();
+const ROUNDS = parseInt(process.env.SALT_ROUNDS);
 const JWT_SECRET = process.env.JWT_SECRET;
-const { UserModel, CourseModel } = require("../../db/db.js");
+const UserModel = require("../../db/userModel.js");
+const CourseModel = require("../../db/courseModel.js");
+const signupService = require("../services/signupService.js");
+const loginService = require("../services/loginService.js");
 
 // Creates a new admin account
 async function adminSignup(req, res) {
   try {
-    const username = req.body.username;
-    const password = req.body.password;
+    await signupService(req.body.username, req.body.password, true);
 
-    // If admin already exists
-    const user = await UserModel.findOne({ username });
-    console.log(user);
-
-    if (user) {
-      return res.status(400).send({
-        message: "User already signed up",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, ROUNDS);
-    console.log(hashedPassword);
-    await UserModel.create({
-      username: username,
-      password: hashedPassword,
-      is_admin: true,
-    });
-
-    return res.send({
+    return res.json({
       message: "Admin created successfully",
     });
   } catch (err) {
     return res.status(500).json({
-      message: "Internal server error",
+      message: err.message,
     });
-    // console.log(err);
   }
 }
 
 // Authenticates an admin
 async function adminLogin(req, res) {
   try {
-    const username = req.body.username;
-    const password = req.body.password;
+    const token = await loginService(
+      req.body.username,
+      req.body.password,
+      true
+    );
 
-    // If admin does not exist
-    const user = await UserModel.findOne({ username });
-    if (!user) {
-      return res.status(401).json({
-        message: "Admin does not exist",
-      });
-    }
-
-    // If password is incorrect
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({
-        message: "Incorrect credentials",
-      });
-    }
-
-    // If user is not admin
-    if (user.is_admin !== true) {
-      return res.status(403).json({
-        message: "User is not admin",
-      });
-    }
-
-    // Return JWT
-    const token = jwt.sign({ username }, JWT_SECRET);
     res.setHeader("Authorization", "Bearer " + token);
+
     return res.json({
-      message: "Logged in successfully",
+      message: "Admin logged in",
     });
   } catch (err) {
     return res.status(500).json({
-      message: "Internal server error",
+      message: err.message,
     });
   }
 }

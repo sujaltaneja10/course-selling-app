@@ -3,7 +3,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const UserModel = require("../../db/userModel.js");
 const CourseModel = require("../../db/courseModel.js");
 
-async function verifyAdmin(req, res, next) {
+async function verifyUser(req, res, next) {
   try {
     let token = req.headers.authorization;
     token = token.replace("Bearer ", "");
@@ -17,16 +17,7 @@ async function verifyAdmin(req, res, next) {
       });
     }
 
-    // If user is not admin
-    const user = await UserModel.findOne({
-      username: decodedData.username,
-    });
-
-    if (user.is_admin !== true) {
-      return res.status(403).json({
-        message: "User is not admin",
-      });
-    }
+    req.userId = decodedData.id;
 
     next();
   } catch (err) {
@@ -36,4 +27,4 @@ async function verifyAdmin(req, res, next) {
   }
 }
 
-module.exports = verifyAdmin;
+module.exports = verifyUser;
